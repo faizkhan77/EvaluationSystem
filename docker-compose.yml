@@ -172,7 +172,14 @@ services:
       --requirepass ${REDIS_AUTH:-myredissecret}
       --maxmemory-policy noeviction
     ports:
-      - 127.0.0.1:6379:6379
+      # Host port remapped to 6380 — 6379 is IRIS's own local Redis (checkpointer,
+      # semantic cache, Nuqi external cache). Leaving both on 6379 meant whichever
+      # container grabbed the port first won it, and the other side silently
+      # connected to the wrong (password-protected) Redis instance. Purely a
+      # host-side mapping; internal container-to-container traffic (langfuse-web/
+      # worker -> redis) uses the Docker network on the untouched internal port
+      # 6379, unaffected by this.
+      - 127.0.0.1:6380:6379
     volumes:
       - langfuse_redis_data:/data
     healthcheck:
