@@ -12,6 +12,8 @@ Usage:
 """
 import argparse
 import logging
+import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -22,7 +24,21 @@ from langfuse_client import fetch_recent_traces, get_already_scored_trace_ids, g
 from llm_judge_scorer import score_relevance_and_groundedness
 from route_plausibility_scorer import score_route_plausibility
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+# File handler, not shell redirection: when this runs under Task Scheduler via
+# run_evaluations.ps1, redirecting a native python.exe's stderr with `*>` in
+# PowerShell 5.1 wraps every logged line in a NativeCommandError and makes the
+# task look like it failed even when the script itself exits 0 (Python's
+# logging module writes to stderr by default). Writing straight to a file
+# from inside Python sidesteps that PowerShell quirk entirely.
+_LOG_DIR = Path(__file__).parent / "scheduled_logs"
+_LOG_DIR.mkdir(exist_ok=True)
+_LOG_FILE = _LOG_DIR / "run_evaluations.log"
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    handlers=[logging.StreamHandler(), logging.FileHandler(_LOG_FILE, encoding="utf-8")],
+)
 logger = logging.getLogger("run_evaluations")
 
 FORMAT_SCORE_NAME = "format_compliance"
