@@ -60,13 +60,24 @@ consolidated, revised quarterly results, real indices/exchanges).
 Pushes it into Langfuse as a Dataset (`iris-india-golden-queries`, visible
 in the dashboard's Datasets tab). Idempotent — re-running adds no duplicates.
 
+## Route-accuracy replay
+
+```
+.venv/Scripts/python.exe run_golden_dataset.py [--limit 5] [--base-url http://127.0.0.1:8000]
+```
+
+Actually logs into a real, running IRIS India instance (`IRIS_TEST_EMAIL`/
+`IRIS_TEST_PASSWORD` in `.env`) and replays every golden query through
+`/chat/send`, comparing the route taken against `expected_route`. This is
+the one script here that costs real IRIS LLM calls — use `--limit` for a
+quick smoke test before running the full 36-item set. No IRIS backend code
+is touched; it only calls existing endpoints (`/auth/login`,
+`/chat/conversation`, `/chat/send`).
+
 ## Not yet built
 
-- **Route-accuracy replay runner** — actually POSTing each golden query to
-  IRIS India's own `/chat/send` and comparing the route taken against
-  `expected_route`. Needs auth wiring (a valid user token) since that's a
-  real authenticated endpoint, not yet built.
-- Scheduling (cron / Windows Task Scheduler) — currently run manually.
+- Scheduling (cron / Windows Task Scheduler) — currently everything here
+  is run manually.
 - Dedicated eval-only LLM key (currently reusing IRIS India's own ApiLens
   proxy credentials per instruction — swap `ANTHROPIC_API_KEY`/
   `ANTHROPIC_BASE_URL` in `.env` when a separate one is issued).
