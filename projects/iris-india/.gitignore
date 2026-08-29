@@ -2,3 +2,4 @@
 .venv/
 __pycache__/
 *.pyc
+golden_run_output.log
