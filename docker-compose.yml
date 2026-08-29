@@ -196,7 +196,11 @@ services:
       TZ: UTC
       PGTZ: UTC
     ports:
-      - 127.0.0.1:5432:5432
+      # Host port remapped to 5433 — 5432 is already bound by another local Postgres
+      # on this machine. Purely a host-side debugging convenience; internal
+      # container-to-container traffic (langfuse-web/worker -> postgres) uses the
+      # Docker network on the untouched internal port 5432, unaffected by this.
+      - 127.0.0.1:5433:5432
     volumes:
       - langfuse_postgres_data:/var/lib/postgresql/data
 
