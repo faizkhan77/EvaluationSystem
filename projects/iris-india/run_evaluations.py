@@ -20,6 +20,7 @@ load_dotenv()
 from format_scorer import score_format
 from langfuse_client import fetch_recent_traces, get_already_scored_trace_ids, get_client, push_score
 from llm_judge_scorer import score_relevance_and_groundedness
+from route_plausibility_scorer import score_route_plausibility
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("run_evaluations")
@@ -27,6 +28,7 @@ logger = logging.getLogger("run_evaluations")
 FORMAT_SCORE_NAME = "format_compliance"
 JUDGE_SCORE_NAME = "relevance_groundedness"
 FABRICATION_SCORE_NAME = "possible_fabrication"
+ROUTE_PLAUSIBILITY_SCORE_NAME = "route_plausibility"
 
 
 def run_format_scorer(lf, traces, hours: int) -> None:
@@ -67,6 +69,23 @@ def run_llm_judge(lf, traces, hours: int) -> None:
     logger.info(f"[{JUDGE_SCORE_NAME}] scored {scored} new trace(s).")
 
 
+def run_route_plausibility(lf, traces, hours: int) -> None:
+    already_scored = get_already_scored_trace_ids(lf, ROUTE_PLAUSIBILITY_SCORE_NAME, hours=hours)
+    logger.info(f"[{ROUTE_PLAUSIBILITY_SCORE_NAME}] {len(already_scored)} already scored, skipping those.")
+
+    scored = 0
+    for t in traces:
+        if t["trace_id"] in already_scored:
+            continue
+        result = score_route_plausibility(t["user_query"], t["route"])
+        if result is None:
+            continue
+        push_score(lf, t["trace_id"], ROUTE_PLAUSIBILITY_SCORE_NAME, result["score"], comment=result["reasoning"])
+        scored += 1
+        logger.info(f"[{ROUTE_PLAUSIBILITY_SCORE_NAME}] trace_id={t['trace_id']} route={t['route']} -> {result['score']:.0f} ({result['reasoning']})")
+    logger.info(f"[{ROUTE_PLAUSIBILITY_SCORE_NAME}] scored {scored} new trace(s).")
+
+
 def main(hours: int, skip_judge: bool) -> None:
     lf = get_client()
 
@@ -79,6 +98,7 @@ def main(hours: int, skip_judge: bool) -> None:
         logger.info("Skipping LLM judge (--skip-judge).")
     else:
         run_llm_judge(lf, traces, hours)
+        run_route_plausibility(lf, traces, hours)
 
     lf.flush()
     logger.info("Done.")
