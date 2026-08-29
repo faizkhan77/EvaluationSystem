@@ -43,6 +43,39 @@ Re-running is safe: already-scored traces are skipped (checked via
 | `format_compliance` | Deterministic (regex) | Exactly one teal verdict span (prose routes), no en/em dash, no double-hyphen, no AI filler openers, no robotic hedges, 3-4 paragraphs (prose routes only) |
 | `relevance_groundedness` | LLM-as-judge (claude-haiku-4-5, via IRIS's ApiLens proxy — temporary shared key) | Does the response actually address the user's question; is anything a plausible fabrication |
 | `possible_fabrication` | LLM-as-judge (boolean, same call as above) | Split out separately so a fabrication concern doesn't just get averaged away inside one blended number |
+| `route_plausibility` | LLM-as-judge, runs on EVERY live trace (no golden dataset needed) | Does the route IRIS picked look reasonable for this query, in a generic judge's opinion. Deliberately a WEAKER claim than `route_accuracy` below — the judge doesn't know IRIS's actual routing rules, so a low score here means "maybe worth a look," not "definitely wrong." Two AI opinions disagreeing isn't proof either is at fault. |
+| `route_accuracy` | Exact match against a human-authored answer, only on the 36 golden-dataset queries | The strong, ground-truth version of the check above — only exists for queries a human deliberately pre-labeled |
+
+## Automatic scheduling (Windows Task Scheduler)
+
+Tracing is already automatic for every query (wired directly into IRIS India).
+Scoring is NOT automatic by default — `run_evaluations.py` only does anything
+when launched. To make scoring run continuously without anyone launching it
+by hand, register a recurring scheduled task:
+
+```powershell
+$scriptPath = "<repo path>\projects\iris-india\run_evaluations.ps1"
+$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`""
+$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 15) -RepetitionDuration (New-TimeSpan -Days 3650)
+Register-ScheduledTask -TaskName "NuqiEval-IrisIndia" -Action $action -Trigger $trigger -Settings (New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -StartWhenAvailable) -Force
+```
+
+This is already registered and verified working (`LastTaskResult: 0`) — runs
+every 15 minutes, `--hours 1` look-back per run (wide safety margin if one
+run is delayed), each scorer's own de-duplication means nothing gets
+double-scored. Logs land in `scheduled_logs/run_evaluations.log`.
+
+**Gotcha worth knowing if you ever edit `run_evaluations.ps1`:** don't redirect
+`python.exe`'s output with `*>`/`2>&1` in PowerShell 5.1 — it wraps every
+line Python logs to stderr (which `logging` does by default) in a
+`NativeCommandError` and makes the task report failure even when the script
+exits 0. `run_evaluations.py` writes its own log file directly for exactly
+this reason — nothing to redirect at the PowerShell level at all.
+
+```
+Get-ScheduledTaskInfo -TaskName "NuqiEval-IrisIndia"   # check last run result
+Unregister-ScheduledTask -TaskName "NuqiEval-IrisIndia" -Confirm:$false   # remove it
+```
 
 ## Golden dataset
 
