@@ -3,3 +3,4 @@
 __pycache__/
 *.pyc
 golden_run_output.log
+scheduled_logs/
