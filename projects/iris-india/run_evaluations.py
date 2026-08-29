@@ -19,44 +19,74 @@ load_dotenv()
 
 from format_scorer import score_format
 from langfuse_client import fetch_recent_traces, get_already_scored_trace_ids, get_client, push_score
+from llm_judge_scorer import score_relevance_and_groundedness
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("run_evaluations")
 
 FORMAT_SCORE_NAME = "format_compliance"
+JUDGE_SCORE_NAME = "relevance_groundedness"
+FABRICATION_SCORE_NAME = "possible_fabrication"
 
 
-def main(hours: int) -> None:
+def run_format_scorer(lf, traces, hours: int) -> None:
+    already_scored = get_already_scored_trace_ids(lf, FORMAT_SCORE_NAME, hours=hours)
+    logger.info(f"[{FORMAT_SCORE_NAME}] {len(already_scored)} already scored, skipping those.")
+
+    scored = 0
+    for t in traces:
+        if t["trace_id"] in already_scored:
+            continue
+        result = score_format(t["final_response"], t["route"])
+        comment = "; ".join(result["violations"]) if result["violations"] else "all checks passed"
+        push_score(lf, t["trace_id"], FORMAT_SCORE_NAME, result["score"], comment=comment)
+        scored += 1
+        logger.info(f"[{FORMAT_SCORE_NAME}] trace_id={t['trace_id']} route={t['route']} -> {result['score']:.2f} ({comment})")
+    logger.info(f"[{FORMAT_SCORE_NAME}] scored {scored} new trace(s).")
+
+
+def run_llm_judge(lf, traces, hours: int) -> None:
+    already_scored = get_already_scored_trace_ids(lf, JUDGE_SCORE_NAME, hours=hours)
+    logger.info(f"[{JUDGE_SCORE_NAME}] {len(already_scored)} already scored, skipping those.")
+
+    scored = 0
+    for t in traces:
+        if t["trace_id"] in already_scored:
+            continue
+        result = score_relevance_and_groundedness(t["user_query"], t["final_response"])
+        if result is None:
+            continue  # judge call itself failed — skip, don't crash the batch
+        push_score(lf, t["trace_id"], JUDGE_SCORE_NAME, result["score"], comment=result["reasoning"])
+        push_score(
+            lf, t["trace_id"], FABRICATION_SCORE_NAME,
+            1.0 if result["possible_fabrication"] else 0.0,
+            comment=result["reasoning"], data_type="BOOLEAN",
+        )
+        scored += 1
+        logger.info(f"[{JUDGE_SCORE_NAME}] trace_id={t['trace_id']} -> {result['score']:.2f} (fabrication={result['possible_fabrication']})")
+    logger.info(f"[{JUDGE_SCORE_NAME}] scored {scored} new trace(s).")
+
+
+def main(hours: int, skip_judge: bool) -> None:
     lf = get_client()
 
     logger.info(f"Fetching traces from the last {hours}h...")
     traces = fetch_recent_traces(lf, hours=hours)
     logger.info(f"Found {len(traces)} scoreable trace(s).")
 
-    already_scored = get_already_scored_trace_ids(lf, FORMAT_SCORE_NAME, hours=hours)
-    logger.info(f"{len(already_scored)} already have a '{FORMAT_SCORE_NAME}' score, skipping those.")
-
-    scored, skipped = 0, 0
-    for t in traces:
-        if t["trace_id"] in already_scored:
-            skipped += 1
-            continue
-
-        result = score_format(t["final_response"], t["route"])
-        comment = "; ".join(result["violations"]) if result["violations"] else "all checks passed"
-        push_score(lf, t["trace_id"], FORMAT_SCORE_NAME, result["score"], comment=comment)
-        scored += 1
-        logger.info(
-            f"trace_id={t['trace_id']} route={t['route']} query={t['user_query']!r} "
-            f"-> score={result['score']:.2f} ({comment})"
-        )
+    run_format_scorer(lf, traces, hours)
+    if skip_judge:
+        logger.info("Skipping LLM judge (--skip-judge).")
+    else:
+        run_llm_judge(lf, traces, hours)
 
     lf.flush()
-    logger.info(f"Done. Scored {scored} trace(s), skipped {skipped} already-scored.")
+    logger.info("Done.")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--hours", type=int, default=24, help="Look-back window in hours")
+    parser.add_argument("--skip-judge", action="store_true", help="Only run the free deterministic format scorer")
     args = parser.parse_args()
-    main(args.hours)
+    main(args.hours, args.skip_judge)
