@@ -1,0 +1,48 @@
+[
+  {"query": "What is TCS's P/E ratio and dividend yield right now?", "expected_route": "fundamentals", "notes": "single-metric valuation lookup, real fincode 500325"},
+  {"query": "Show me Reliance's consolidated balance sheet for the latest year", "expected_route": "fundamentals", "notes": "tests standalone vs consolidated disambiguation"},
+  {"query": "What is HDFC Bank's NIM, CASA ratio, and gross NPA?", "expected_route": "fundamentals", "notes": "banking-specific ratios, only meaningful for BNK-format companies"},
+  {"query": "How much promoter pledge does Infosys have?", "expected_route": "fundamentals", "notes": "governance-risk question, percentage_pledgedpromoter"},
+  {"query": "What was TCS's revenue growth and PAT margin last quarter, revised figures?", "expected_route": "fundamentals", "notes": "tests QR (revised quarterly) vs Q preference"},
+  {"query": "What is Reliance Industries' return on capital employed and interest coverage ratio?", "expected_route": "fundamentals", "notes": "leverage/return ratios"},
+  {"query": "Who is on the board of directors of Infosys, and who are the independent directors?", "expected_route": "fundamentals", "notes": "company_board_director table"},
+  {"query": "What is the shareholding pattern for HDFC Bank? How much do FIIs and mutual funds hold?", "expected_route": "fundamentals", "notes": "tp_in_fii / tp_in_mf_uti disambiguation"},
+
+  {"query": "What is the RSI and MACD for TCS right now?", "expected_route": "technicals", "notes": "core oscillator/trend indicators"},
+  {"query": "Is Reliance in an uptrend or downtrend based on the 50 and 200 day moving averages?", "expected_route": "technicals", "notes": "golden/death cross concept"},
+  {"query": "What is the 52-week high and low for Infosys on the NSE?", "expected_route": "technicals", "notes": "price history, exchange-specific"},
+  {"query": "Show me the Bollinger Bands and Supertrend signal for HDFC Bank", "expected_route": "technicals", "notes": "volatility + trend indicator combo"},
+
+  {"query": "What's the latest news sentiment on Adani Enterprises?", "expected_route": "sentiment", "notes": "news-driven sentiment"},
+  {"query": "Has there been any negative news about Paytm recently?", "expected_route": "sentiment", "notes": "sentiment, negative-skew phrasing"},
+
+  {"query": "Should I buy TCS right now?", "expected_route": "cross_agent", "notes": "classic buy/sell/hold combining fundamentals+technicals+sentiment"},
+  {"query": "Compare Reliance and TCS as long-term investments", "expected_route": "cross_agent", "notes": "multi-stock combined analysis"},
+  {"query": "Give me a full detailed report on HDFC Bank covering fundamentals, technicals, and recent sentiment", "expected_route": "cross_agent", "notes": "explicit multi-category ask"},
+  {"query": "Is it a good time to exit my Infosys position?", "expected_route": "cross_agent", "notes": "sell-side investment decision framing"},
+
+  {"query": "Find me banking stocks with gross NPA below 2% and ROE above 15%", "expected_route": "screener", "notes": "multi-filter screen, banking-specific ratio thresholds"},
+  {"query": "Show me IT sector stocks trading near their 52-week high with strong volume", "expected_route": "screener", "notes": "sector + technical filter combo"},
+  {"query": "List stocks with FII holding increased and promoter pledge at zero", "expected_route": "screener", "notes": "shareholding-pattern-based screen"},
+  {"query": "Which companies have shown consistent PAT growth over the last 3 years with low debt-to-equity?", "expected_route": "screener", "notes": "growth + leverage screen"},
+
+  {"query": "Rank the top 10 stocks in the Nifty 50 by market cap", "expected_route": "ranking", "notes": "index-scoped ranking, real index name"},
+  {"query": "What are the top 5 IT sector stocks by P/E ratio, lowest to highest?", "expected_route": "ranking", "notes": "sector-scoped ranking, ascending order"},
+  {"query": "Show me the 5 stocks on the BSE with the highest dividend yield", "expected_route": "ranking", "notes": "exchange-scoped ranking, BSE not NSE"},
+  {"query": "Which Sensex companies have the best return on equity?", "expected_route": "ranking", "notes": "index-scoped ranking, real index name SENSEX"},
+
+  {"query": "Who are TCS's closest competitors and how do they compare on valuation?", "expected_route": "cross_agent", "notes": "peer/competitor comparison framing"},
+
+  {"query": "What is a P/E ratio and why does it matter when picking a stock?", "expected_route": "concept_explainer", "notes": "educational, no specific company"},
+  {"query": "Explain the difference between standalone and consolidated financial results", "expected_route": "concept_explainer", "notes": "educational, references a real schema concept"},
+  {"query": "What does it mean when a company's promoter holding is pledged?", "expected_route": "concept_explainer", "notes": "educational, governance concept"},
+
+  {"query": "What's the weather like in Mumbai today?", "expected_route": "out_of_domain", "notes": "correct refusal expected, non-market topic"},
+  {"query": "What is Bitcoin's price right now?", "expected_route": "out_of_domain", "notes": "correct refusal expected, crypto not covered"},
+  {"query": "How is Apple stock doing on the NASDAQ?", "expected_route": "out_of_domain", "notes": "correct refusal expected, non-Indian exchange"},
+
+  {"query": "hi", "expected_route": "general", "notes": "greeting, should not trigger any data route"},
+  {"query": "What can you help me with?", "expected_route": "general", "notes": "capability question"},
+
+  {"query": "What's happening with RBI's latest monetary policy and how might it affect Indian banks?", "expected_route": "broad_search", "notes": "macro/real-world context needing web grounding"}
+]
