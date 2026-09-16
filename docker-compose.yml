@@ -23,7 +23,7 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/postgres} # CHANGEME
       SALT: ${SALT:-mysalt} # CHANGEME
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-0000000000000000000000000000000000000000000000000000000000000000} # CHANGEME: generate via `openssl rand -hex 32`
-      TELEMETRY_ENABLED: ${TELEMETRY_ENABLED:-true}
+      TELEMETRY_ENABLED: ${TELEMETRY_ENABLED:-false}
       LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: ${LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES:-false}
       LANGFUSE_LLM_CONNECTION_WHITELISTED_HOST: ${LANGFUSE_LLM_CONNECTION_WHITELISTED_HOST:-}
       LANGFUSE_LLM_CONNECTION_WHITELISTED_IPS: ${LANGFUSE_LLM_CONNECTION_WHITELISTED_IPS:-}
@@ -171,6 +171,7 @@ services:
     command: >
       --requirepass ${REDIS_AUTH:-myredissecret}
       --maxmemory-policy noeviction
+      --tcp-keepalive 60
     ports:
       # Host port remapped to 6380 — 6379 is IRIS's own local Redis (checkpointer,
       # semantic cache, Nuqi external cache). Leaving both on 6379 meant whichever
@@ -183,7 +184,7 @@ services:
     volumes:
       - langfuse_redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_AUTH:-myredissecret}", "ping"]
       interval: 3s
       timeout: 10s
       retries: 10
@@ -210,6 +211,80 @@ services:
       - 127.0.0.1:5433:5432
     volumes:
       - langfuse_postgres_data:/var/lib/postgresql/data
+
+  # ─── Evaluation runners ────────────────────────────────────────────────────
+  # Each runner is a self-contained Python container that:
+  #   1. Starts automatically with `docker compose up -d`
+  #   2. Runs `run_evaluations.py` every EVAL_INTERVAL_HOURS hours (default 1h)
+  #   3. Logs to stdout — view with `docker compose logs evaluation-runner-iris-india`
+  #
+  # One-off scripts (golden dataset replay, dataset upload):
+  #   docker compose run --rm evaluation-runner-iris-india python run_golden_dataset.py
+  #   docker compose run --rm evaluation-runner-iris-dubai python upload_golden_dataset.py
+
+  evaluation-runner-iris-india:
+    build:
+      context: ./projects/iris-india
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      langfuse-web:
+        condition: service_started
+    environment:
+      # Langfuse — uses the iris-india project's own keys (not the org-level init keys)
+      LANGFUSE_PUBLIC_KEY: ${IRIS_INDIA_LANGFUSE_PUBLIC_KEY}
+      LANGFUSE_SECRET_KEY: ${IRIS_INDIA_LANGFUSE_SECRET_KEY}
+      LANGFUSE_HOST: http://langfuse-web:3000
+      # LLM judge — ApiLens proxy or direct Anthropic key
+      ANTHROPIC_API_KEY: ${IRIS_INDIA_ANTHROPIC_API_KEY}
+      ANTHROPIC_BASE_URL: ${IRIS_INDIA_ANTHROPIC_BASE_URL:-}
+      JUDGE_MODEL: ${IRIS_INDIA_JUDGE_MODEL:-claude-haiku-4-5-20251001}
+      # Scheduler interval
+      EVAL_INTERVAL_HOURS: ${IRIS_INDIA_EVAL_INTERVAL_HOURS:-1}
+      # Golden dataset replay only (run_golden_dataset.py)
+      IRIS_API_URL: ${IRIS_INDIA_API_URL:-http://localhost:8000}
+      IRIS_TEST_EMAIL: ${IRIS_INDIA_TEST_EMAIL:-}
+      IRIS_TEST_PASSWORD: ${IRIS_INDIA_TEST_PASSWORD:-}
+    volumes:
+      # 7-day rotating log files — accessible on the host at ./logs/iris-india/
+      - ./logs/iris-india:/app/logs
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"   # rotate Docker's own stdout capture at 10 MB
+        max-file: "7"     # keep 7 files — roughly 7 days at normal log volume
+
+  evaluation-runner-iris-dubai:
+    build:
+      context: ./projects/iris-dubai
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      langfuse-web:
+        condition: service_started
+    environment:
+      # Langfuse — uses the iris-dubai project's own keys
+      LANGFUSE_PUBLIC_KEY: ${IRIS_DUBAI_LANGFUSE_PUBLIC_KEY}
+      LANGFUSE_SECRET_KEY: ${IRIS_DUBAI_LANGFUSE_SECRET_KEY}
+      LANGFUSE_HOST: http://langfuse-web:3000
+      # LLM judge
+      ANTHROPIC_API_KEY: ${IRIS_DUBAI_ANTHROPIC_API_KEY}
+      ANTHROPIC_BASE_URL: ${IRIS_DUBAI_ANTHROPIC_BASE_URL:-}
+      JUDGE_MODEL: ${IRIS_DUBAI_JUDGE_MODEL:-claude-haiku-4-5-20251001}
+      # Scheduler interval
+      EVAL_INTERVAL_HOURS: ${IRIS_DUBAI_EVAL_INTERVAL_HOURS:-1}
+      # Golden dataset replay only (run_golden_dataset.py)
+      IRIS_API_URL: ${IRIS_DUBAI_API_URL:-http://host.docker.internal:8001}
+      IRIS_TEST_EMAIL: ${IRIS_DUBAI_TEST_EMAIL:-}
+      IRIS_TEST_PASSWORD: ${IRIS_DUBAI_TEST_PASSWORD:-}
+    volumes:
+      # 7-day rotating log files — accessible on the host at ./logs/iris-dubai/
+      - ./logs/iris-dubai:/app/logs
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "7"
 
 volumes:
   langfuse_postgres_data:

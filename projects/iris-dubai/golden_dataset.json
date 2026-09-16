@@ -1,0 +1,47 @@
+[
+  {"query": "What is Emaar Properties' P/E ratio and dividend yield right now?", "expected_route": "fundamentals", "notes": "core valuation lookup, DFM-listed"},
+  {"query": "Show me Emirates NBD's latest balance sheet — total assets and loan book", "expected_route": "fundamentals", "notes": "banking fundamentals, DFM-listed ENBD"},
+  {"query": "What is FAB's net interest margin and NPL ratio?", "expected_route": "fundamentals", "notes": "banking-specific ratios, ADX-listed First Abu Dhabi Bank"},
+  {"query": "How much promoter or government holding does DEWA have?", "expected_route": "fundamentals", "notes": "shareholding pattern, DFM-listed DEWA"},
+  {"query": "What was Aldar Properties' revenue growth and net profit margin last quarter?", "expected_route": "fundamentals", "notes": "ADX-listed, quarterly results"},
+  {"query": "What is e&'s return on equity and debt-to-equity ratio?", "expected_route": "fundamentals", "notes": "ADX-listed Etisalat/e&, leverage ratios"},
+  {"query": "Who are the board members of Dubai Islamic Bank?", "expected_route": "fundamentals", "notes": "corporate governance, DFM-listed DIB"},
+  {"query": "What is the institutional vs retail shareholding breakdown for ADNOC Distribution?", "expected_route": "fundamentals", "notes": "shareholding pattern, ADX-listed"},
+
+  {"query": "What is the RSI and MACD for Emaar right now?", "expected_route": "technicals", "notes": "core oscillator indicators, DFM stock"},
+  {"query": "Is Emirates NBD in an uptrend based on the 50 and 200 day moving averages?", "expected_route": "technicals", "notes": "golden/death cross concept"},
+  {"query": "What is the 52-week high and low for DEWA on the DFM?", "expected_route": "technicals", "notes": "price history, exchange-specific"},
+  {"query": "Show me the Bollinger Bands and Supertrend signal for FAB", "expected_route": "technicals", "notes": "volatility + trend indicator combo"},
+
+  {"query": "What's the latest news sentiment on Emaar Properties?", "expected_route": "sentiment", "notes": "news-driven sentiment, DFM stock"},
+  {"query": "Has there been any negative news about Dubai Islamic Bank recently?", "expected_route": "sentiment", "notes": "sentiment, negative-skew phrasing"},
+
+  {"query": "Should I buy Emaar right now?", "expected_route": "cross_agent", "notes": "classic buy/sell/hold combining fundamentals+technicals+sentiment"},
+  {"query": "Compare Emirates NBD and FAB as long-term investments", "expected_route": "cross_agent", "notes": "multi-stock combined analysis"},
+  {"query": "Give me a full detailed report on ADNOC Distribution covering fundamentals, technicals, and sentiment", "expected_route": "cross_agent", "notes": "explicit multi-category ask"},
+  {"query": "Is it a good time to exit my Aldar Properties position?", "expected_route": "cross_agent", "notes": "sell-side investment decision"},
+
+  {"query": "Find me UAE banking stocks with NPL ratio below 3% and ROE above 12%", "expected_route": "screener", "notes": "multi-filter screen, banking-specific thresholds"},
+  {"query": "Show me DFM-listed real estate stocks trading near their 52-week high with strong volume", "expected_route": "screener", "notes": "exchange + sector + technical filter"},
+  {"query": "List GCC stocks where government or sovereign wealth fund holding is above 50%", "expected_route": "screener", "notes": "shareholding-pattern-based screen"},
+  {"query": "Which UAE companies have shown consistent revenue growth over the last 3 years with low debt?", "expected_route": "screener", "notes": "growth + leverage screen"},
+
+  {"query": "Rank the top 10 DFM stocks by market capitalisation", "expected_route": "ranking", "notes": "exchange-scoped ranking"},
+  {"query": "What are the top 5 ADX stocks by dividend yield, highest to lowest?", "expected_route": "ranking", "notes": "exchange-scoped ranking, descending"},
+  {"query": "Show me the 5 GCC bank stocks with the lowest P/B ratio", "expected_route": "ranking", "notes": "sector-scoped ranking by valuation"},
+  {"query": "Which UAE50 index companies have the best return on equity?", "expected_route": "ranking", "notes": "index-scoped ranking"},
+
+  {"query": "What is a P/E ratio and why does it matter when picking a stock?", "expected_route": "concept_explainer", "notes": "educational, no specific company"},
+  {"query": "Explain the difference between DFM and ADX — which exchange is better for liquidity?", "expected_route": "concept_explainer", "notes": "educational, GCC exchange comparison"},
+  {"query": "What does it mean when a company's NPL ratio is rising?", "expected_route": "concept_explainer", "notes": "educational, banking concept"},
+
+  {"query": "What's the weather like in Dubai today?", "expected_route": "out_of_domain", "notes": "correct refusal expected, non-market topic"},
+  {"query": "What is Bitcoin's price right now?", "expected_route": "out_of_domain", "notes": "correct refusal expected, crypto not covered"},
+  {"query": "How is Reliance Industries doing on NSE?", "expected_route": "out_of_domain", "notes": "correct refusal expected, Indian market not covered"},
+
+  {"query": "hi", "expected_route": "general", "notes": "greeting, should not trigger any data route"},
+  {"query": "What can you help me with?", "expected_route": "general", "notes": "capability question"},
+
+  {"query": "How might the latest OPEC+ production cut affect UAE energy stocks?", "expected_route": "broad_search", "notes": "macro/real-world GCC context needing web grounding"},
+  {"query": "What is the UAE Central Bank's latest interest rate decision and how does it affect bank margins?", "expected_route": "broad_search", "notes": "GCC monetary policy, macro impact on banking sector"}
+]
